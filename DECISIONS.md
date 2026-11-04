@@ -33,7 +33,7 @@ createApp({
 
 ## API contract
 
-Every error body is `{ "error": "<message>" }`. All timestamps are UTC ISO 8601 strings.
+Every `/api/*` and redirect error body is `{ "error": "<message>" }`. HTML pages return HTML errors. All timestamps are UTC ISO 8601 strings.
 
 ### `POST /api/shorten`
 
@@ -117,6 +117,32 @@ HTML page with total clicks, an SVG bar chart of 30 days, a top-referrers table,
 - No client JavaScript.
 - Headers: `Cache-Control: no-store` and a Content-Security-Policy with `default-src 'none'`, allowing only inline styles.
 
+## Dashboard
+
+Added after the first demo, to use this as a product rather than through `curl`. The brief only requires the API and analytics page.
+
+### `GET /`
+
+HTML page with `Cache-Control: no-store`.
+
+- Top: a form to shorten a link, with `url` and an expiry select.
+- Below: totals, and the 100 latest links with short link, original URL, clicks, created date, status and a link to analytics. Short links are clickable, and each click counts.
+- `?created=<code>` shows a result card with the short link, a copy button and the analytics link, only when the code exists. Any other value is ignored and never echoed.
+- Lists the same data as the public `GET /api/urls`, so it exposes nothing new.
+- CSP: `default-src 'none'; style-src 'unsafe-inline'; script-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`. The only script is the copy button, served from `GET /assets/copy.js`, and the page works without it.
+
+### `POST /links`
+
+Form-encoded: `url`, and `expiresIn` as `never`, `1m`, `1h`, `24h`, `7d` or `30d`. A preset avoids `datetime-local`, which has no timezone. `1m` also makes the `410` easy to demo.
+
+- Applies the same validation as `POST /api/shorten`, through shared code.
+- Success: `303` to `/?created=<code>`.
+- Failure: `400` with the dashboard, an inline error, and the submitted URL kept in the field, escaped.
+
+### Analytics page
+
+Gets a top bar with a link back to the dashboard and a compact shorten form, so one page leads to the other. Stays free of client JavaScript, and adds `form-action 'self'` to its CSP.
+
 ## Schema
 
 ```sql
@@ -189,4 +215,4 @@ The foundation commits a stub for each stream's route file and for `getStats` in
 
 ## Out of scope
 
-Auth, rate limiting, bot and link-preview filtering, custom aliases, a link-creation form or home page, redirect-loop detection, and deployment.
+Auth, rate limiting, bot and link-preview filtering, custom aliases, redirect-loop detection, and deployment.
