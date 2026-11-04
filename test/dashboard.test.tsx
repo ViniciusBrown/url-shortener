@@ -53,7 +53,7 @@ test("an invalid URL returns 400 with the error and the value escaped", async ()
   const page = await res.text();
 
   expect(res.status).toBe(400);
-  expect(page).toContain("url must start with http:// or https://");
+  expect(page).toContain("URL must start with http:// or https://");
   expect(page).toContain(
     'value="example.com/&quot;&gt;&lt;script&gt;alert(1)&lt;/script&gt;"',
   );
