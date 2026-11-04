@@ -76,11 +76,13 @@ export function validateShortenInput(
     return "url must be at most 2048 characters with no whitespace or control characters";
   }
 
+  // new URL() accepts "http:example.org", so check the literal prefix the brief requires.
+  if (!/^https?:\/\//i.test(url)) {
+    return "url must start with http:// or https://";
+  }
+
   try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return "url must use http or https";
-    }
+    new URL(url);
   } catch {
     return "url must be a valid absolute HTTP or HTTPS URL";
   }

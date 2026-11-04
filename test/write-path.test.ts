@@ -73,6 +73,7 @@ test.each(
     { url: "https://[broken" },
     { url: "ftp://example.com/file" },
     { url: "javascript:alert(1)" },
+    { url: "http:example.org" },
     { url: "data:text/plain,hello" },
     { url: "https://example.com/" + "a".repeat(2029) },
   ].map((body) => ({ body })),
