@@ -244,3 +244,137 @@ test("the daily window advances when the injected clock crosses UTC midnight", a
   expect(after.clicksByDay[28]).toEqual({ date: "2026-11-04", clicks: 1 });
   expect(after.clicksByDay[29]).toEqual({ date: "2026-11-05", clicks: 0 });
 });
+
+test("URL listing orders by creation time then id, keeps zero-click and expired links, and includes all-time counts", async () => {
+  const { db, app } = setup();
+  seedLink(db, "newer01", "2026-11-04T12:00:00.000Z");
+  const older = seedLink(
+    db,
+    "older01",
+    "2026-10-01T12:00:00.000Z",
+    "2026-11-01T00:00:00.000Z",
+  );
+  const firstTie = seedLink(db, "tie0001", "2026-11-03T12:00:00.000Z");
+  seedLink(db, "tie0002", "2026-11-03T12:00:00.000Z");
+  seedClick(db, older, "2026-10-02T00:00:00.000Z");
+  seedClick(db, older, "2026-11-04T00:00:00.000Z");
+  seedClick(db, firstTie, "2026-11-04T00:00:00.000Z");
+
+  // A caller-controlled host must not become part of the short or analytics URL.
+  const res = await app.request("https://attacker.example/api/urls");
+  const text = await res.text();
+
+  expect(res.status).toBe(200);
+  expect(JSON.parse(text)).toEqual({
+    urls: [
+      ["newer01", "2026-11-04T12:00:00.000Z", null, 0],
+      ["tie0002", "2026-11-03T12:00:00.000Z", null, 0],
+      ["tie0001", "2026-11-03T12:00:00.000Z", null, 1],
+      ["older01", "2026-10-01T12:00:00.000Z", "2026-11-01T00:00:00.000Z", 2],
+    ].map(([shortCode, createdAt, expiresAt, totalClicks]) => ({
+      shortCode,
+      shortUrl: `${baseUrl}/${shortCode}`,
+      analyticsUrl: `${baseUrl}/analytics/${shortCode}`,
+      originalUrl: `https://example.com/${shortCode}`,
+      createdAt,
+      expiresAt,
+      totalClicks,
+    })),
+  });
+  expect(text).not.toContain("198.51.100.42");
+  expect(text).not.toContain("private-user-agent");
+  expect(text).not.toMatch(/"(?:ip|user_agent|userAgent)"\s*:/);
+});
+
+test.each([
+  { query: "", limit: 100 },
+  { query: "?limit=1", limit: 1 },
+  { query: "?limit=500", limit: 500 },
+  { query: "?limit=001", limit: 1 },
+])(
+  "URL listing applies $query with a limit of $limit",
+  async ({ query, limit }) => {
+    const { db, app } = setup();
+    for (let index = 1; index <= 501; index++) {
+      seedLink(db, `u${String(index).padStart(6, "0")}`);
+    }
+
+    const res = await app.request(`/api/urls${query}`);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.urls).toHaveLength(limit);
+    expect(
+      body.urls.map((url: { shortCode: string }) => url.shortCode),
+    ).toEqual(
+      Array.from(
+        { length: limit },
+        (_, index) => `u${String(501 - index).padStart(6, "0")}`,
+      ),
+    );
+  },
+);
+
+test.each([
+  "",
+  "0",
+  "-1",
+  "501",
+  "1.5",
+  "1.0",
+  "1e2",
+  "0x10",
+  "Infinity",
+  "NaN",
+  "abc",
+  "1abc",
+  "%20",
+  "%201%20",
+  "+1",
+  "%2B1",
+  "1%0A",
+  "９",
+  "9007199254740993",
+])("URL listing rejects invalid limit %j with JSON 400", async (value) => {
+  const { app } = setup();
+
+  const res = await app.request(`/api/urls?limit=${value}`);
+
+  expect(res.status).toBe(400);
+  expect(await res.json()).toEqual({ error: expect.any(String) });
+});
+
+test("URL listing rejects ambiguous repeated limit parameters", async () => {
+  const { app } = setup();
+
+  const res = await app.request("/api/urls?limit=1&limit=500");
+
+  expect(res.status).toBe(400);
+  expect(await res.json()).toEqual({ error: expect.any(String) });
+});
+
+test("an empty database returns an empty URL list", async () => {
+  const { app } = setup();
+
+  const res = await app.request("/api/urls");
+
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ urls: [] });
+});
+
+test("URL listing handles a configured base URL with a trailing slash", async () => {
+  const { db } = setup();
+  seedLink(db);
+  const app = createApp({
+    db,
+    now: () => new Date("2026-11-04T12:00:00.000Z"),
+    baseUrl: `${baseUrl}/`,
+  });
+
+  const res = await app.request("/api/urls");
+  const body = await res.json();
+
+  expect(res.status).toBe(200);
+  expect(body.urls[0].shortUrl).toBe(`${baseUrl}/aZ3kP9x`);
+  expect(body.urls[0].analyticsUrl).toBe(`${baseUrl}/analytics/aZ3kP9x`);
+});
