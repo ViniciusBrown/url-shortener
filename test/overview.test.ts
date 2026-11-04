@@ -34,8 +34,12 @@ test("GET /analytics totals every link and links to each link's own page", async
   expect(res.status).toBe(200);
   expect(res.headers.get("cache-control")).toBe("no-store");
   expect(html).toContain("3 clicks across 2 links");
-  expect(html).toContain("2026-11-04: 3");
-  expect(html).toContain("news.ycombinator.com: 2");
+  expect(html).toMatch(
+    /<time dateTime="2026-11-04">[^<]*<\/time><\/td><td class="num">3<\/td>/,
+  );
+  expect(html).toMatch(
+    />news\.ycombinator\.com<\/span><\/td><td class="num">2<\/td>/,
+  );
   expect(html).toContain(`href="/analytics/${first}"`);
   expect(html).toContain(`href="/analytics/${second}"`);
   expect(html).toContain('http-equiv="refresh"');

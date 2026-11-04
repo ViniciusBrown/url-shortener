@@ -174,7 +174,8 @@ describe("chart", () => {
 
   test("offers every daily value in a table", () => {
     const html = render();
-    const table = html.match(/<details[\s\S]*<\/details>/)?.[0] ?? "";
+    const table =
+      html.match(/<table class="daily-table">[\s\S]*?<\/table>/)?.[0] ?? "";
 
     expect(table.match(/<tbody>[\s\S]*<\/tbody>/)?.[0]).toBeDefined();
     expect(table.match(/<tr>/g)).toHaveLength(31);
@@ -315,6 +316,13 @@ describe("page", () => {
 
     expect(css).toContain("prefers-color-scheme: dark");
     expect(css).not.toContain("&");
+  });
+
+  test("refreshes itself so new clicks show up while it is open", () => {
+    expect(render()).toMatch(/<meta http-equiv="refresh" content="5"\s*\/?>/);
+    expect(String(<AnalyticsNotFoundPage code="abc1234" />)).not.toContain(
+      "http-equiv",
+    );
   });
 
   test("declares its language, viewport and title", () => {

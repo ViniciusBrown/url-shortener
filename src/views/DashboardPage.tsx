@@ -1,5 +1,20 @@
 import type { LinkTotals, ListedLink } from "../stats";
-import { ShortenForm, type ShortenFormProps } from "./ShortenForm";
+import { Document } from "./Document";
+import {
+  LINK_PARTS_CSS,
+  linkStatus,
+  number,
+  plural,
+  ShortUrlText,
+  StatusPill,
+} from "./LinkParts";
+import {
+  SHORTEN_FORM_CSS,
+  ShortenForm,
+  type ShortenFormProps,
+} from "./ShortenForm";
+import { BASE_CSS, safeCss } from "./theme";
+import { TOP_BAR_CSS, TopBar } from "./TopBar";
 
 export interface DashboardPageProps {
   links: ListedLink[];
@@ -9,184 +24,262 @@ export interface DashboardPageProps {
   form?: Pick<ShortenFormProps, "url" | "expiresIn" | "error">;
 }
 
-const number = new Intl.NumberFormat("en-US");
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeZone: "UTC",
 });
 
-// Neutral placeholder styling, replaced as one block when the theme lands.
-// hono/jsx escapes text inside <style>, so this CSS must not contain
-// ampersands, angle brackets or quotes.
-const STYLES = `
-*, *::before, *::after { box-sizing: border-box; }
-:root {
-  color-scheme: light dark;
-  --soft: color-mix(in srgb, CanvasText 65%, Canvas);
-  --line: color-mix(in srgb, CanvasText 20%, Canvas);
-  --error: light-dark(#b00020, #ff8a80);
+const DASHBOARD_CSS = safeCss(`
+.hero {
+  padding: clamp(2.75rem, 9vw, 5.5rem) 0 clamp(2.25rem, 6vw, 3.5rem);
+  background: radial-gradient(60rem 26rem at 50% -6rem,
+    color-mix(in oklab, var(--accent) 14%, transparent), transparent 72%);
 }
-body {
-  margin: 0;
-  background: Canvas;
-  color: CanvasText;
-  font: 1rem/1.5 system-ui, sans-serif;
+.hero-inner { max-width: 46rem; }
+.hero h1 {
+  font-size: clamp(2.5rem, 1.5rem + 4vw, 3.875rem);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  text-align: center;
 }
-h1 { margin: 0 0 1.25rem; font-size: 2rem; line-height: 1.2; }
-h2 { margin: 0; font-size: 1.25rem; line-height: 1.3; }
-p { margin: 0; }
-a { color: inherit; text-underline-offset: 0.15em; }
-:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
-button {
-  height: 2.75rem;
-  padding: 0 1.25rem;
-  border: 1px solid CanvasText;
-  border-radius: 0.375rem;
-  background: CanvasText;
-  color: Canvas;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.page {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 2rem;
-  width: 100%;
-  max-width: 66rem;
-  margin-inline: auto;
-  padding: 2rem clamp(1rem, 4vw, 2rem) 4rem;
-}
-
-.shorten { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.75rem; }
-.shorten label {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-.shorten input, .shorten select {
-  width: 100%;
-  height: 2.75rem;
-  padding: 0 0.75rem;
-  border: 1px solid var(--soft);
-  border-radius: 0.375rem;
-  background: Field;
-  color: FieldText;
-  font: inherit;
-}
-.shorten input[aria-invalid] { border-color: var(--error); }
-.shorten-error { grid-column: 1 / -1; color: var(--error); font-weight: 600; }
-@media (min-width: 40rem) {
-  .shorten {
-    grid-template-columns: minmax(0, 1fr) 10rem auto;
-    align-items: end;
-  }
+.hero-lede {
+  max-width: 30rem;
+  margin: 1rem auto clamp(1.75rem, 5vw, 2.5rem);
+  color: var(--ink-soft);
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  text-align: center;
+  text-wrap: balance;
 }
 
 .result {
+  margin-top: 1.5rem;
+  padding: clamp(1.25rem, 3.5vw, 1.75rem);
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--line));
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    color-mix(in oklab, var(--accent) 8%, var(--surface)),
+    var(--surface) 75%
+  );
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 8%, transparent),
+    var(--shadow-raised);
+  animation: result-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes result-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+}
+.result-head { display: flex; align-items: center; gap: 0.625rem; }
+.result-check {
   display: grid;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  border: 1px solid var(--soft);
-  border-radius: 0.5rem;
+  place-items: center;
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 50%;
+  background: var(--accent-fill);
+  color: var(--accent-fill-ink);
 }
+.result-head h2 { font-size: 0.9375rem; color: var(--ink-soft); }
 .result-url {
-  font-size: clamp(1.5rem, 6vw, 2.5rem);
-  font-weight: 700;
+  margin-top: 0.875rem;
+  font-size: clamp(1.375rem, 0.9rem + 2.6vw, 2.125rem);
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  letter-spacing: -0.02em;
 }
-.result-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
-.result-note { color: var(--soft); }
-
-.links-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1rem; }
-.links-totals, .links-empty { color: var(--soft); }
-.links-empty { margin-top: 1rem; }
-.truncate {
-  display: block;
+.result-url a { text-decoration: none; }
+.result-url a:hover .short-code {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+}
+.result-actions { display: flex; flex-wrap: wrap; gap: 0.625rem; margin-top: 1.25rem; }
+.result-actions .button { min-width: 7rem; }
+.result-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink-muted);
+  font-size: 0.875rem;
+}
+.result-dest {
+  flex: 1 1 14rem;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-table { width: 100%; margin-top: 1rem; border-collapse: collapse; table-layout: fixed; }
-th, td {
-  padding: 0.625rem 0.75rem 0.625rem 0;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
+
+.links { padding-bottom: clamp(3rem, 8vw, 5rem); }
+.links-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.875rem;
 }
-th { color: var(--soft); font-size: 0.875rem; font-weight: 600; }
-.col-short { width: 13rem; overflow-wrap: anywhere; font-weight: 600; }
-.col-clicks { width: 4.5rem; text-align: right; font-variant-numeric: tabular-nums; }
-.col-created { width: 7.5rem; padding-left: 1rem; }
-.col-status { width: 9.5rem; }
-.col-analytics { width: 5rem; padding-right: 0; }
-@media (max-width: 47.99rem) {
-  table, tbody, tr, td { display: block; }
-  thead {
+.links-head h2 { font-size: 1.25rem; letter-spacing: -0.02em; }
+.links-totals { color: var(--ink-muted); font-size: 0.875rem; }
+.links-totals a { font-weight: 600; }
+
+.drows .rows-head, .drow {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 1rem;
+}
+.drow {
+  display: grid;
+  align-items: center;
+  row-gap: 0.75rem;
+  padding: 1rem clamp(1rem, 3vw, 1.25rem);
+}
+.drow-main { grid-column: 1; grid-row: 1; min-width: 0; }
+.drow .short-url { font-size: 0.9375rem; }
+.drow-main a { text-decoration: none; }
+.drow-main a:hover .short-code {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+}
+.drow .row-clicks { grid-column: 2; grid-row: 1; }
+.drow-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem 0.875rem;
+  grid-column: 1;
+  grid-row: 2;
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+}
+.drow-stats {
+  grid-column: 2;
+  grid-row: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  justify-self: end;
+  height: 2.125rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.drow-stats:hover { border-color: var(--ink-muted); color: var(--ink); }
+.drow.is-expired .short-code { color: var(--ink-muted); }
+@media (max-width: 30rem) {
+  .drow-stats { width: 2.125rem; padding: 0; justify-content: center; }
+  .drow-stats-label { display: none; }
+}
+@media (min-width: 52rem) {
+  .drows .rows-head, .drow {
+    grid-template-columns: minmax(0, 1fr) 5rem 8rem 10.5rem 7.5rem;
+    column-gap: 1.5rem;
+  }
+  .drows .rows-head { padding-inline: 1.25rem; }
+  .drow { padding-inline: 1.25rem; }
+  .drow-main, .drow .row-clicks, .drow-stats { grid-row: 1; }
+  .drow-meta { display: contents; }
+  .drow-meta time { grid-column: 3; grid-row: 1; font-size: 0.875rem; }
+  .drow-meta .status { grid-column: 4; grid-row: 1; justify-self: start; }
+  .drow-stats { grid-column: 5; }
+  .created-label {
     position: absolute;
     width: 1px;
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
   }
-  tr { padding-block: 0.75rem; border-bottom: 1px solid var(--line); }
-  td, .col-short, .col-clicks, .col-created, .col-status, .col-analytics {
-    display: grid;
-    grid-template-columns: 5.5rem minmax(0, 1fr);
-    width: auto;
-    padding: 0.125rem 0;
-    border: 0;
-    text-align: left;
-  }
-  td::before { content: attr(data-label); color: var(--soft); font-weight: 400; }
 }
-`;
+`);
 
-function plural(count: number, unit: string): string {
-  return `${number.format(count)} ${unit}${count === 1 ? "" : "s"}`;
-}
+const PAGE_CSS = [
+  BASE_CSS,
+  TOP_BAR_CSS,
+  LINK_PARTS_CSS,
+  SHORTEN_FORM_CSS,
+  DASHBOARD_CSS,
+].join("\n");
 
-// Rounds up, so a new 24-hour link reads as 24 hours rather than 23.
-function timeLeft(ms: number): string {
-  const minutes = Math.ceil(ms / 60_000);
-  if (minutes < 60) return plural(minutes, "minute");
-  const hours = Math.ceil(minutes / 60);
-  if (hours < 48) return plural(hours, "hour");
-  return plural(Math.ceil(hours / 24), "day");
-}
-
-function statusLabel(expiresAt: string | null, now: Date): string {
-  if (expiresAt === null) return "Active";
-  const left = new Date(expiresAt).getTime() - now.getTime();
-  return left > 0 ? `Expires in ${timeLeft(left)}` : "Expired";
-}
-
-function hostAndPath(shortUrl: string): string {
-  return shortUrl.replace(/^https?:\/\//, "");
-}
-
-function ShortLink({ href, children }: { href: string; children: string }) {
+function CheckIcon() {
   return (
-    <a href={href} target="_blank" rel="noreferrer">
-      {children}
-    </a>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="3"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="m5 12.5 4.5 4.5L19 7.5" />
+    </svg>
+  );
+}
+
+function ChartIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.25"
+      stroke-linecap="round"
+      aria-hidden="true"
+    >
+      <path d="M5 20V10M12 20V4M19 20v-7" />
+    </svg>
+  );
+}
+
+function LinkIcon() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7" />
+      <path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
+    </svg>
   );
 }
 
 function ResultCard({ link, now }: { link: ListedLink; now: Date }) {
   return (
     <section class="result" aria-labelledby="result-title">
-      <h2 id="result-title">Your short link is ready</h2>
+      <div class="result-head">
+        <span class="result-check">
+          <CheckIcon />
+        </span>
+        <h2 id="result-title">Your short link is ready</h2>
+      </div>
       <p class="result-url">
-        <ShortLink href={link.shortUrl}>{link.shortUrl}</ShortLink>
+        <a href={link.shortUrl} target="_blank" rel="noreferrer">
+          <ShortUrlText url={link.shortUrl} />
+        </a>
       </p>
       <p class="result-actions">
         {/* Hidden until copy.js loads, because it does nothing without it. */}
         <button
+          class="button"
           type="button"
           data-copy={link.shortUrl}
           aria-live="polite"
@@ -194,75 +287,69 @@ function ResultCard({ link, now }: { link: ListedLink; now: Date }) {
         >
           Copy
         </button>
-        <a href={link.analyticsUrl}>View analytics</a>
+        <a class="button secondary" href={link.analyticsUrl}>
+          <ChartIcon />
+          View analytics
+        </a>
       </p>
-      <p class="result-note truncate" title={link.originalUrl}>
-        Goes to {link.originalUrl}
-      </p>
-      <p class="result-note">{statusLabel(link.expiresAt, now)}</p>
+      <div class="result-foot">
+        <p class="result-dest" title={link.originalUrl}>
+          Goes to {link.originalUrl}
+        </p>
+        <StatusPill {...linkStatus(link.expiresAt, now)} />
+      </div>
     </section>
   );
 }
 
-function LinksTable({ links, now }: { links: ListedLink[]; now: Date }) {
+function LinkRows({ links, now }: { links: ListedLink[]; now: Date }) {
   return (
-    <table>
-      <thead>
-        <tr>
-          <th scope="col" class="col-short">
-            Short link
-          </th>
-          <th scope="col">Goes to</th>
-          <th scope="col" class="col-clicks">
-            Clicks
-          </th>
-          <th scope="col" class="col-created">
-            Created
-          </th>
-          <th scope="col" class="col-status">
-            Status
-          </th>
-          <th scope="col" class="col-analytics">
-            Analytics
-          </th>
-        </tr>
-      </thead>
-      <tbody>
-        {links.map((link) => (
-          <tr>
-            <td class="col-short" data-label="Short link">
-              <ShortLink href={link.shortUrl}>
-                {hostAndPath(link.shortUrl)}
-              </ShortLink>
-            </td>
-            <td data-label="Goes to">
-              <span class="truncate" title={link.originalUrl}>
-                {link.originalUrl}
-              </span>
-            </td>
-            <td class="col-clicks" data-label="Clicks">
-              {number.format(link.totalClicks)}
-            </td>
-            <td class="col-created" data-label="Created">
-              <time dateTime={link.createdAt}>
-                {dateFormat.format(new Date(link.createdAt))}
-              </time>
-            </td>
-            <td class="col-status" data-label="Status">
-              {statusLabel(link.expiresAt, now)}
-            </td>
-            <td class="col-analytics" data-label="Analytics">
+    <div class="card drows">
+      <div class="rows-head eyebrow" aria-hidden="true">
+        <span>Link</span>
+        <span class="right">Clicks</span>
+        <span>Created</span>
+        <span>Status</span>
+      </div>
+      <ul class="rows">
+        {links.map((link) => {
+          const status = linkStatus(link.expiresAt, now);
+          return (
+            <li class={status.live ? "drow" : "drow is-expired"}>
+              <div class="drow-main">
+                <a href={link.shortUrl} target="_blank" rel="noreferrer">
+                  <ShortUrlText url={link.shortUrl} />
+                </a>
+                <span class="row-dest" title={link.originalUrl}>
+                  {link.originalUrl}
+                </span>
+              </div>
+              <p class="row-clicks">
+                <strong>{number.format(link.totalClicks)}</strong>
+                <span class="row-unit">
+                  {link.totalClicks === 1 ? " click" : " clicks"}
+                </span>
+              </p>
+              <div class="drow-meta">
+                <StatusPill {...status} />
+                <time dateTime={link.createdAt}>
+                  <span class="created-label">Created </span>
+                  {dateFormat.format(new Date(link.createdAt))}
+                </time>
+              </div>
               <a
+                class="drow-stats"
                 href={link.analyticsUrl}
                 aria-label={`View analytics for ${link.shortCode}`}
               >
-                View
+                <ChartIcon size={14} />
+                <span class="drow-stats-label">Analytics</span>
               </a>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 
@@ -274,45 +361,49 @@ export function DashboardPage({
   form,
 }: DashboardPageProps) {
   return (
-    <html lang="en">
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>URL shortener</title>
-        <style>{STYLES}</style>
-        {created && <script src="/assets/copy.js" defer></script>}
-      </head>
-      <body>
-        <main class="page">
-          <section>
-            <h1>Shorten a link</h1>
+    <Document
+      title="URL shortener"
+      css={PAGE_CSS}
+      head={created && <script src="/assets/copy.js" defer></script>}
+    >
+      <TopBar current="shorten" />
+      <main>
+        <section class="hero" aria-labelledby="hero-title">
+          <div class="wrap hero-inner">
+            <h1 id="hero-title">Shorten a link</h1>
+            <p class="hero-lede">
+              Paste a long URL. Get a short one that counts every click, with a
+              stats page you can share.
+            </p>
             <ShortenForm {...form} autofocus={!created} />
-          </section>
+            {created && <ResultCard link={created} now={now} />}
+          </div>
+        </section>
 
-          {created && <ResultCard link={created} now={now} />}
-
-          <section aria-labelledby="links-title">
-            <div class="links-head">
-              <h2 id="links-title">Your links</h2>
-              {totals.links > 0 && (
-                <p class="links-totals">
-                  {`${plural(totals.links, "link")}, ${plural(totals.clicks, "click")}`}
-                  {totals.links > links.length &&
-                    `. Showing the latest ${number.format(links.length)}.`}
-                </p>
-              )}
-            </div>
-            {links.length > 0 ? (
-              <LinksTable links={links} now={now} />
-            ) : (
-              <p class="links-empty">
-                No links yet. Shorten one above and it shows up here with its
-                clicks.
+        <section class="wrap links" aria-labelledby="links-title">
+          <div class="links-head">
+            <h2 id="links-title">Your links</h2>
+            {totals.links > 0 && (
+              <p class="links-totals">
+                {`${plural(totals.links, "link")}, ${plural(totals.clicks, "click")}`}
+                {totals.links > links.length &&
+                  `. Showing the latest ${number.format(links.length)}.`}
               </p>
             )}
-          </section>
-        </main>
-      </body>
-    </html>
+          </div>
+          {links.length > 0 ? (
+            <LinkRows links={links} now={now} />
+          ) : (
+            <div class="card empty">
+              <span class="empty-icon">
+                <LinkIcon />
+              </span>
+              <h3>No links yet</h3>
+              <p>Shorten one above and it shows up here with its clicks.</p>
+            </div>
+          )}
+        </section>
+      </main>
+    </Document>
   );
 }
