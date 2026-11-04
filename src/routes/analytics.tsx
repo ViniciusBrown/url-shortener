@@ -6,7 +6,8 @@ import { AnalyticsNotFoundPage, AnalyticsPage } from "../views/AnalyticsPage";
 
 const HEADERS = {
   "Cache-Control": "no-store",
-  "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+  "Content-Security-Policy":
+    "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'",
 };
 
 function toDocument(page: JSX.Element): string {

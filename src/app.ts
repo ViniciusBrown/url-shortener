@@ -3,6 +3,7 @@ import { bodyLimit } from "hono/body-limit";
 import { createClientIpResolver } from "./client-ip";
 import { generateCode } from "./code";
 import { registerAnalyticsRoutes } from "./routes/analytics";
+import { registerDashboardRoutes } from "./routes/dashboard";
 import { registerLinkRoutes } from "./routes/links";
 import { registerStatsRoutes } from "./routes/stats";
 import type { AppDeps, AppOptions } from "./types";
@@ -29,6 +30,7 @@ export function createApp(options: AppOptions): Hono {
 
   registerStatsRoutes(app, deps);
   registerAnalyticsRoutes(app, deps);
+  registerDashboardRoutes(app, deps);
   registerLinkRoutes(app, deps);
 
   app.notFound((c) => c.json({ error: "Not found" }, 404));

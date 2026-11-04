@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
-import { getStats } from "../stats";
-import type { AppDeps, LinkRow } from "../types";
+import { getStats, listLinks } from "../stats";
+import type { AppDeps } from "../types";
 
 export function registerStatsRoutes(app: Hono, deps: AppDeps): void {
   app.get("/api/urls", (c) => {
@@ -15,29 +15,7 @@ export function registerStatsRoutes(app: Hono, deps: AppDeps): void {
     ) {
       return c.json({ error: "limit must be an integer from 1 to 500" }, 400);
     }
-    const links = deps.db
-      .prepare(
-        `
-        SELECT id, code, original_url, created_at, expires_at,
-          (SELECT COUNT(*) FROM clicks WHERE link_id = links.id) AS total_clicks
-        FROM links
-        ORDER BY created_at DESC, id DESC
-        LIMIT ?
-      `,
-      )
-      .all(limit) as unknown as (LinkRow & { total_clicks: number })[];
-    const baseUrl = deps.baseUrl.replace(/\/+$/, "");
-    return c.json({
-      urls: links.map((link) => ({
-        shortCode: link.code,
-        shortUrl: `${baseUrl}/${link.code}`,
-        analyticsUrl: `${baseUrl}/analytics/${link.code}`,
-        originalUrl: link.original_url,
-        createdAt: link.created_at,
-        expiresAt: link.expires_at,
-        totalClicks: link.total_clicks,
-      })),
-    });
+    return c.json({ urls: listLinks(deps, limit) });
   });
 
   app.get("/api/stats/:code", (c) => {

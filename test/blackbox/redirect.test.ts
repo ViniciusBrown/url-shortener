@@ -186,7 +186,6 @@ describe("GET /:code and HEAD /:code", () => {
 
 describe("root route boundaries", () => {
   it.each([
-    "/",
     "/favicon.ico",
     "/abcdef",
     "/abcdefgh",

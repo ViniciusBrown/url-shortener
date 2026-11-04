@@ -1,5 +1,6 @@
 import type { Child } from "hono/jsx";
 import type { DayClicks, LinkStats, ReferrerClicks } from "../types";
+import { TopBar } from "./TopBar";
 
 export interface AnalyticsPageProps {
   stats: LinkStats;
@@ -490,6 +491,7 @@ export function AnalyticsPage({
 
   return (
     <Document title={`Clicks for ${stats.shortCode}`} dead={expired}>
+      <TopBar />
       <main>
         <section class="band">
           <div class="wrap">
