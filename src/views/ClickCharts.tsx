@@ -188,11 +188,18 @@ export const CHART_CSS = safeCss(`
   font-variant-numeric: tabular-nums;
 }
 .refs .pct {
-  width: 3.5rem;
+  width: 4rem;
+  padding-left: 0.625rem;
   color: var(--ink-muted);
   font-size: 0.8125rem;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+@media (max-width: 30rem) {
+  .refs th { font-size: 0.6875rem; letter-spacing: 0.03em; }
+  .refs .rank { width: 1.5rem; }
+  .refs .num { width: 3.25rem; }
+  .refs .pct { width: 3.5rem; }
 }
 .refs-note { margin-top: 1rem; color: var(--ink-muted); font-size: 0.8125rem; }
 .refs-empty { color: var(--ink-muted); font-size: 0.9375rem; }

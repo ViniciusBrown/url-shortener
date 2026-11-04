@@ -256,6 +256,9 @@ svg { flex: none; }
   -webkit-user-select: all;
   user-select: all;
 }
+@media (max-width: 30rem) {
+  .field { font-size: 0.75rem; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
