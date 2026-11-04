@@ -25,18 +25,32 @@ export const TOP_BAR_CSS = safeCss(`
 }
 .brand:hover { color: var(--ink); }
 .brand-mark { color: var(--accent); }
-.topbar-nav { display: flex; align-items: center; gap: 0.25rem 0.75rem; }
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--sunken);
+}
 .topbar-link {
-  padding: 0.375rem 0.5rem;
-  border-radius: var(--radius-sm);
-  color: var(--ink-soft);
+  padding: 0.375rem 0.875rem;
+  border-radius: var(--radius-pill);
+  color: var(--ink-muted);
   font-size: 0.875rem;
   font-weight: 600;
+  line-height: 1.3;
   text-decoration: none;
   white-space: nowrap;
+  transition: background-color 0.15s, color 0.15s;
 }
-.topbar-link:hover { background: var(--hover); color: var(--ink); }
-.topbar .button { height: 2.25rem; padding: 0 0.875rem; font-size: 0.875rem; }
+.topbar-link:hover { color: var(--ink); }
+.topbar-link[aria-current] {
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgb(0 0 0 / 0.06);
+  color: var(--ink);
+}
 @media (max-width: 25rem) {
   .brand-name { display: none; }
 }
@@ -64,8 +78,16 @@ function BrandMark() {
   );
 }
 
-// The dashboard hides the links, because it is the page they lead to.
-export function TopBar({ links = true }: { links?: boolean }) {
+const PAGES = [
+  { key: "shorten", label: "Shorten", href: "/" },
+  { key: "analytics", label: "Analytics", href: "/analytics" },
+] as const;
+
+export function TopBar({
+  current = "analytics",
+}: {
+  current?: (typeof PAGES)[number]["key"];
+}) {
   return (
     <header class="topbar">
       <div class="wrap topbar-inner">
@@ -73,16 +95,17 @@ export function TopBar({ links = true }: { links?: boolean }) {
           <BrandMark />
           <span class="brand-name">URL shortener</span>
         </a>
-        {links && (
-          <nav class="topbar-nav" aria-label="Main">
-            <a class="topbar-link" href="/">
-              All links
+        <nav class="topbar-nav" aria-label="Main">
+          {PAGES.map((page) => (
+            <a
+              class="topbar-link"
+              href={page.href}
+              aria-current={page.key === current ? "page" : undefined}
+            >
+              {page.label}
             </a>
-            <a class="button" href="/">
-              Shorten a link
-            </a>
-          </nav>
-        )}
+          ))}
+        </nav>
       </div>
     </header>
   );

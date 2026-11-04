@@ -61,7 +61,8 @@ const dark: typeof light = {
   dot: "#4a4842",
   hover: "rgb(243 241 234 / 0.06)",
   shadow: "0 1px 2px rgb(0 0 0 / 0.3)",
-  shadowRaised: "0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.6)",
+  shadowRaised:
+    "0 1px 2px rgb(0 0 0 / 0.4), 0 24px 48px -20px rgb(0 0 0 / 0.6)",
 };
 
 // The accent drops to a neutral for expired links and other dead states.
