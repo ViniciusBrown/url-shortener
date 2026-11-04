@@ -201,7 +201,6 @@ describe("root route boundaries", () => {
     "/api/abcdefg",
     "/api/shorten/abcdefg",
     "/api/urls/abcdefg",
-    "/analytics",
   ])("returns the JSON 404 outside the code pattern: %s", async (path) => {
     const h = harness({ generateCode: () => "abcdefg" });
     const link = await createLink(h);

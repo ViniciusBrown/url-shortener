@@ -38,3 +38,10 @@ export interface LinkStats {
   clicksByDay: DayClicks[];
   topReferrers: ReferrerClicks[];
 }
+
+export interface OverviewStats {
+  totalLinks: number;
+  totalClicks: number;
+  clicksByDay: DayClicks[];
+  topReferrers: ReferrerClicks[];
+}
