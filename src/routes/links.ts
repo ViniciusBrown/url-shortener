@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
+import { createLink } from "../links";
 import type { AppDeps, LinkRow } from "../types";
-import { referrerHost, validateShortenInput } from "../validation";
+import { referrerHost } from "../validation";
 
 export function registerLinkRoutes(app: Hono, deps: AppDeps): void {
   // The foundation's JSON notFound handler also handles invalid code paths.
@@ -16,34 +17,11 @@ export function registerLinkRoutes(app: Hono, deps: AppDeps): void {
     } catch {
       return c.json({ error: "Body must be valid JSON" }, 400);
     }
-    const now = deps.now();
-    const input = validateShortenInput(body, now);
-    if (typeof input === "string") {
-      return c.json({ error: input }, 400);
+    const result = createLink(deps, body);
+    if ("error" in result) {
+      return c.json({ error: result.error }, result.status);
     }
-    const createdAt = now.toISOString();
-    const insert = deps.db.prepare(
-      `INSERT INTO links (code, original_url, created_at, expires_at)
-       VALUES (?, ?, ?, ?) ON CONFLICT(code) DO NOTHING`,
-    );
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const code = deps.generateCode();
-      const result = insert.run(code, input.url, createdAt, input.expiresAt);
-      if (result.changes === 0) continue;
-
-      return c.json(
-        {
-          shortCode: code,
-          shortUrl: `${deps.baseUrl}/${code}`,
-          analyticsUrl: `${deps.baseUrl}/analytics/${code}`,
-          originalUrl: input.url,
-          createdAt,
-          expiresAt: input.expiresAt,
-        },
-        201,
-      );
-    }
-    return c.json({ error: "Unable to generate a unique short code" }, 500);
+    return c.json(result, 201);
   });
 
   app.get("/:code{[0-9a-zA-Z]{7}}", (c) => {

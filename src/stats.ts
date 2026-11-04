@@ -1,3 +1,4 @@
+import type { CreatedLink } from "./links";
 import type {
   AppDeps,
   DayClicks,
@@ -6,19 +7,74 @@ import type {
   ReferrerClicks,
 } from "./types";
 
+export interface ListedLink extends CreatedLink {
+  totalClicks: number;
+}
+
+export interface LinkTotals {
+  links: number;
+  clicks: number;
+}
+
+type LinkWithClicks = LinkRow & { total_clicks: number };
+
+const SELECT_LINK_WITH_CLICKS = `
+  SELECT id, code, original_url, created_at, expires_at,
+    (SELECT COUNT(*) FROM clicks WHERE link_id = links.id) AS total_clicks
+  FROM links
+`;
+
+function toListedLink(baseUrl: string, link: LinkWithClicks): ListedLink {
+  const base = baseUrl.replace(/\/+$/, "");
+  return {
+    shortCode: link.code,
+    shortUrl: `${base}/${link.code}`,
+    analyticsUrl: `${base}/analytics/${link.code}`,
+    originalUrl: link.original_url,
+    createdAt: link.created_at,
+    expiresAt: link.expires_at,
+    totalClicks: link.total_clicks,
+  };
+}
+
+export function listLinks(
+  deps: Pick<AppDeps, "db" | "baseUrl">,
+  limit: number,
+): ListedLink[] {
+  const links = deps.db
+    .prepare(
+      `${SELECT_LINK_WITH_CLICKS} ORDER BY created_at DESC, id DESC LIMIT ?`,
+    )
+    .all(limit) as unknown as LinkWithClicks[];
+  return links.map((link) => toListedLink(deps.baseUrl, link));
+}
+
+export function getLink(
+  deps: Pick<AppDeps, "db" | "baseUrl">,
+  code: string,
+): ListedLink | null {
+  const link = deps.db
+    .prepare(`${SELECT_LINK_WITH_CLICKS} WHERE code = ?`)
+    .get(code) as LinkWithClicks | undefined;
+  return link ? toListedLink(deps.baseUrl, link) : null;
+}
+
+export function getTotals(deps: Pick<AppDeps, "db">): LinkTotals {
+  return deps.db
+    .prepare(
+      `SELECT (SELECT COUNT(*) FROM links) AS links,
+        (SELECT COUNT(*) FROM clicks) AS clicks`,
+    )
+    .get() as unknown as LinkTotals;
+}
+
 export function getStats(
   deps: Pick<AppDeps, "db" | "now">,
   code: string,
 ): LinkStats | null {
   const link = deps.db
-    .prepare(
-      `
-      SELECT id, code, original_url, created_at, expires_at,
-        (SELECT COUNT(*) FROM clicks WHERE link_id = links.id) AS total_clicks
-      FROM links WHERE code = ?
-    `,
-    )
-    .get(code) as (LinkRow & { total_clicks: number }) | undefined;
+    .prepare(`${SELECT_LINK_WITH_CLICKS} WHERE code = ?`)
+    .get(code) as LinkWithClicks | undefined;
   if (!link) return null;
 
   const today = new Date(deps.now());
