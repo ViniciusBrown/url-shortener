@@ -4,6 +4,7 @@ import type {
   DayClicks,
   LinkRow,
   LinkStats,
+  OverviewStats,
   ReferrerClicks,
 } from "./types";
 
@@ -68,6 +69,57 @@ export function getTotals(deps: Pick<AppDeps, "db">): LinkTotals {
     .get() as unknown as LinkTotals;
 }
 
+function countClicksByDay(
+  deps: Pick<AppDeps, "db" | "now">,
+  linkId: number | null,
+): DayClicks[] {
+  const today = new Date(deps.now());
+  today.setUTCHours(0, 0, 0, 0);
+  const start = new Date(today);
+  start.setUTCDate(start.getUTCDate() - 29);
+  const end = new Date(today);
+  end.setUTCDate(end.getUTCDate() + 1);
+  const range = [start.toISOString(), end.toISOString()];
+  const dailyCounts = deps.db
+    .prepare(
+      `
+      SELECT substr(clicked_at, 1, 10) AS date, COUNT(*) AS clicks
+      FROM clicks
+      WHERE ${linkId === null ? "" : "link_id = ? AND "}clicked_at >= ? AND clicked_at < ?
+      GROUP BY substr(clicked_at, 1, 10)
+    `,
+    )
+    .all(
+      ...(linkId === null ? range : [linkId, ...range]),
+    ) as unknown as DayClicks[];
+  const countsByDate = new Map(
+    dailyCounts.map((day) => [day.date, day.clicks]),
+  );
+  return Array.from({ length: 30 }, (_, index) => {
+    const day = new Date(start);
+    day.setUTCDate(day.getUTCDate() + index);
+    const date = day.toISOString().slice(0, 10);
+    return { date, clicks: countsByDate.get(date) ?? 0 };
+  });
+}
+
+function countTopReferrers(
+  deps: Pick<AppDeps, "db">,
+  linkId: number | null,
+): ReferrerClicks[] {
+  return deps.db
+    .prepare(
+      `
+      SELECT referrer_host AS referrer, COUNT(*) AS clicks
+      FROM clicks ${linkId === null ? "" : "WHERE link_id = ?"}
+      GROUP BY referrer_host
+      ORDER BY clicks DESC, referrer_host ASC
+      LIMIT 10
+    `,
+    )
+    .all(...(linkId === null ? [] : [linkId])) as unknown as ReferrerClicks[];
+}
+
 export function getStats(
   deps: Pick<AppDeps, "db" | "now">,
   code: string,
@@ -77,54 +129,23 @@ export function getStats(
     .get(code) as LinkWithClicks | undefined;
   if (!link) return null;
 
-  const today = new Date(deps.now());
-  today.setUTCHours(0, 0, 0, 0);
-  const start = new Date(today);
-  start.setUTCDate(start.getUTCDate() - 29);
-  const end = new Date(today);
-  end.setUTCDate(end.getUTCDate() + 1);
-  const dailyCounts = deps.db
-    .prepare(
-      `
-      SELECT substr(clicked_at, 1, 10) AS date, COUNT(*) AS clicks
-      FROM clicks
-      WHERE link_id = ? AND clicked_at >= ? AND clicked_at < ?
-      GROUP BY substr(clicked_at, 1, 10)
-    `,
-    )
-    .all(
-      link.id,
-      start.toISOString(),
-      end.toISOString(),
-    ) as unknown as DayClicks[];
-  const countsByDate = new Map(
-    dailyCounts.map((day) => [day.date, day.clicks]),
-  );
-  const clicksByDay = Array.from({ length: 30 }, (_, index) => {
-    const day = new Date(start);
-    day.setUTCDate(day.getUTCDate() + index);
-    const date = day.toISOString().slice(0, 10);
-    return { date, clicks: countsByDate.get(date) ?? 0 };
-  });
-  const topReferrers = deps.db
-    .prepare(
-      `
-      SELECT referrer_host AS referrer, COUNT(*) AS clicks
-      FROM clicks WHERE link_id = ?
-      GROUP BY referrer_host
-      ORDER BY clicks DESC, referrer_host ASC
-      LIMIT 10
-    `,
-    )
-    .all(link.id) as unknown as ReferrerClicks[];
-
   return {
     shortCode: link.code,
     originalUrl: link.original_url,
     createdAt: link.created_at,
     expiresAt: link.expires_at,
     totalClicks: link.total_clicks,
-    clicksByDay,
-    topReferrers,
+    clicksByDay: countClicksByDay(deps, link.id),
+    topReferrers: countTopReferrers(deps, link.id),
+  };
+}
+
+export function getOverview(deps: Pick<AppDeps, "db" | "now">): OverviewStats {
+  const totals = getTotals(deps);
+  return {
+    totalLinks: totals.links,
+    totalClicks: totals.clicks,
+    clicksByDay: countClicksByDay(deps, null),
+    topReferrers: countTopReferrers(deps, null),
   };
 }

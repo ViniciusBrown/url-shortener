@@ -139,9 +139,13 @@ Form-encoded: `url`, and `expiresIn` as `never`, `1m`, `1h`, `24h`, `7d` or `30d
 - Success: `303` to `/?created=<code>`.
 - Failure: `400` with the dashboard, an inline error, and the submitted URL kept in the field, escaped.
 
-### Analytics page
+### `GET /analytics`
 
-Gets a top bar with a link back to the dashboard and a compact shorten form, so one page leads to the other. Stays free of client JavaScript, and adds `form-action 'self'` to its CSP.
+Analytics across every link: total links and clicks, 30 days of clicks, top referrers, and the 100 latest links. Each link opens its own `/analytics/:code` page.
+
+### Analytics pages
+
+Both analytics pages reload every 5 seconds with `<meta http-equiv="refresh">`, so a click in another tab shows up without JavaScript. Because a reload would wipe a half-typed URL, they link to the dashboard for shortening instead of embedding the form. Every load reads the database, and responses send `Cache-Control: no-store`.
 
 ## Schema
 

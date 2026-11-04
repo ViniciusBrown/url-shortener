@@ -1,8 +1,11 @@
 import type { Hono } from "hono";
 import type { JSX } from "hono/jsx/jsx-runtime";
-import { getStats } from "../stats";
+import { getOverview, getStats, listLinks } from "../stats";
 import type { AppDeps } from "../types";
 import { AnalyticsNotFoundPage, AnalyticsPage } from "../views/AnalyticsPage";
+import { OverviewPage } from "../views/OverviewPage";
+
+const LATEST_LINKS = 100;
 
 const HEADERS = {
   "Cache-Control": "no-store",
@@ -15,6 +18,20 @@ function toDocument(page: JSX.Element): string {
 }
 
 export function registerAnalyticsRoutes(app: Hono, deps: AppDeps): void {
+  app.get("/analytics", (c) =>
+    c.html(
+      toDocument(
+        <OverviewPage
+          overview={getOverview(deps)}
+          links={listLinks(deps, LATEST_LINKS)}
+          now={deps.now()}
+        />,
+      ),
+      200,
+      HEADERS,
+    ),
+  );
+
   app.get("/analytics/:code{[0-9a-zA-Z]{7}}", (c) => {
     const code = c.req.param("code");
     const stats = getStats(deps, code);
