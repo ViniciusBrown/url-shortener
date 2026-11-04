@@ -1,10 +1,13 @@
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { createClientIpResolver } from "./client-ip";
 import { generateCode } from "./code";
 import { registerAnalyticsRoutes } from "./routes/analytics";
 import { registerLinkRoutes } from "./routes/links";
 import { registerStatsRoutes } from "./routes/stats";
 import type { AppDeps, AppOptions } from "./types";
+
+const MAX_BODY_BYTES = 64 * 1024;
 
 export function createApp(options: AppOptions): Hono {
   const deps: AppDeps = {
@@ -16,6 +19,13 @@ export function createApp(options: AppOptions): Hono {
   };
 
   const app = new Hono();
+
+  app.use(
+    bodyLimit({
+      maxSize: MAX_BODY_BYTES,
+      onError: (c) => c.json({ error: "Request body too large" }, 413),
+    }),
+  );
 
   registerStatsRoutes(app, deps);
   registerAnalyticsRoutes(app, deps);
