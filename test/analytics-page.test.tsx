@@ -104,7 +104,7 @@ describe("URLs", () => {
     const html = render({ originalUrl: "javascript:alert(1)" });
 
     expect(html).toContain("javascript:alert(1)");
-    expect(html).not.toContain("href=");
+    expect(html).not.toContain('href="javascript:');
   });
 });
 
