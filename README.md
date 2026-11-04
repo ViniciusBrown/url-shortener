@@ -2,6 +2,8 @@
 
 Shorten a link, share it, and see who clicks it. A small full-stack service with click tracking, per-link and all-links analytics, and optional expiry.
 
+![Dashboard: paste a link and get a short one, with your links listed below](docs/screenshots/dashboard.png)
+
 ## Quick start
 
 Requires Node 24 or later (tested on 25.9).
@@ -23,6 +25,26 @@ The SQLite database and its tables are created automatically at `./data/urlshort
 | `/analytics/:code` | One link's own data, shareable with whoever created it     |
 
 Analytics pages reload every 5 seconds, so a click in another tab shows up while you watch.
+
+### Analytics across every link
+
+Totals, each link's share of clicks, and 30 days of activity. Every row opens that link's own page.
+
+![All-links analytics page](docs/screenshots/analytics-all-links.png)
+
+### One link's own data
+
+Total clicks, a 30-day chart, top referrers, and a link to share.
+
+![Single-link analytics page](docs/screenshots/analytics-single-link.png)
+
+### Dark mode and phone
+
+| Dark mode, from the system setting                             | Phone                                                                                   |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| ![Analytics in dark mode](docs/screenshots/analytics-dark.png) | <img src="docs/screenshots/dashboard-phone.png" alt="Dashboard on a phone" width="280"> |
+
+These are real screenshots of the running app. The links and clicks are sample data.
 
 ## API
 
