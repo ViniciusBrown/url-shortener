@@ -1,4 +1,12 @@
-// Stub: the write-path stream owns this file.
+import { randomInt } from "node:crypto";
+
+const ALPHABET =
+  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
 export function generateCode(): string {
-  throw new Error("generateCode is not implemented");
+  let code = "";
+  for (let i = 0; i < 7; i++) {
+    code += ALPHABET[randomInt(ALPHABET.length)];
+  }
+  return code;
 }
