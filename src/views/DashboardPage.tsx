@@ -174,6 +174,10 @@ const DASHBOARD_CSS = safeCss(`
 }
 .drow-stats:hover { border-color: var(--ink-muted); color: var(--ink); }
 .drow.is-expired .short-code { color: var(--ink-muted); }
+@media (max-width: 30rem) {
+  .drow-stats { width: 2.125rem; padding: 0; justify-content: center; }
+  .drow-stats-label { display: none; }
+}
 @media (min-width: 52rem) {
   .drows .rows-head, .drow {
     grid-template-columns: minmax(0, 1fr) 5rem 8rem 10.5rem 7.5rem;
@@ -339,7 +343,7 @@ function LinkRows({ links, now }: { links: ListedLink[]; now: Date }) {
                 aria-label={`View analytics for ${link.shortCode}`}
               >
                 <ChartIcon size={14} />
-                Analytics
+                <span class="drow-stats-label">Analytics</span>
               </a>
             </li>
           );

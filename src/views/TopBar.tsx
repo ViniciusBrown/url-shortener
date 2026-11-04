@@ -24,7 +24,7 @@ export const TOP_BAR_CSS = safeCss(`
   white-space: nowrap;
 }
 .brand:hover { color: var(--ink); }
-.brand-mark { color: var(--accent); }
+.brand-mark { color: var(--brand); }
 .topbar-nav {
   display: flex;
   align-items: center;

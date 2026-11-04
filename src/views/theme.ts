@@ -23,6 +23,7 @@ const light = {
   ink: "#1b1a17",
   inkSoft: "#4a4741",
   inkMuted: "#6c6860",
+  brand: "#e0532a",
   accent: "#e0532a",
   accentStrong: "#b53c15",
   accentWash: "#fbe6dd",
@@ -49,9 +50,10 @@ const dark: typeof light = {
   ink: "#f3f1ea",
   inkSoft: "#cbc7bd",
   inkMuted: "#9b968c",
+  brand: "#ef6334",
   accent: "#ef6334",
   accentStrong: "#ff9a70",
-  accentWash: "#3a2119",
+  accentWash: "#41221a",
   accentFill: "#ef6334",
   accentFillHover: "#ff7a4d",
   accentFillInk: "#1b0d07",
@@ -249,7 +251,7 @@ svg { flex: none; }
   border-radius: var(--radius-md);
   background: var(--sunken);
   color: var(--ink);
-  font: 500 0.875rem/1.45 var(--font-mono);
+  font: 500 0.8125rem/1.5 var(--font-mono);
   overflow-wrap: anywhere;
   -webkit-user-select: all;
   user-select: all;

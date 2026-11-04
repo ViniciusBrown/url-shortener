@@ -91,6 +91,13 @@ h1 {
   transition: transform 0.15s, color 0.15s;
 }
 .orow:hover .orow-go { color: var(--accent-strong); transform: translateX(3px); }
+@media (min-width: 30rem) {
+  .orows .rows-head, .orow { grid-template-columns: minmax(0, 1fr) auto 4.5rem 1rem; }
+  .orow-main, .orow-status, .orow .row-clicks, .orow-go { grid-row: 1; }
+  .orow-status { grid-column: 2; justify-self: end; }
+  .orow .row-clicks { grid-column: 3; }
+  .orow-go { grid-column: 4; }
+}
 @media (min-width: 52rem) {
   .orows .rows-head, .orow {
     grid-template-columns: minmax(0, 1fr) 10rem 5rem 10.5rem 1rem;

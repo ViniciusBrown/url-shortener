@@ -48,7 +48,7 @@ export function ShortUrlText({ url }: { url: string }) {
 export const LINK_PARTS_CSS = safeCss(`
 .short-url { font-family: var(--font-mono); overflow-wrap: anywhere; }
 .short-host { color: var(--ink-muted); font-weight: 450; }
-.short-code { color: var(--ink); font-weight: 650; }
+.short-code { color: var(--ink); font-weight: 650; white-space: nowrap; }
 
 .rows { overflow: hidden; }
 .rows-head {
